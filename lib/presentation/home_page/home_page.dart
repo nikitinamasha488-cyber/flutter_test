@@ -112,7 +112,7 @@ class _CardState extends State<_Card> {
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
               child: SizedBox(
                 height: 115,
-                width: 200, // Широкая картинка, как ты хотела
+                width: 200,
                 child: Image.network(
                   ex.imageUrl,
                   fit: BoxFit.cover,
