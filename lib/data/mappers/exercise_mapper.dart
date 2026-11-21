@@ -13,7 +13,7 @@ extension ExerciseMapper on ExerciseDto {
     difficulty: difficulty,
     category: category?.name ?? 'Без категории',
 
-    imageUrl: (imageUrl == 'string' || imageUrl == ' ' || imageUrl!.isEmpty)
+    imageUrl: (imageUrl == 'string' || imageUrl == null || imageUrl!.isEmpty)
         ? _imagePlaceholder
         : imageUrl!,
   );

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Доменная модель: то, с чем работает приложение.
-/// Формат ответа сервера её не касается — за это отвечает ExerciseDto и маппер.
 class Exercise {
   final int id;
   final String name;

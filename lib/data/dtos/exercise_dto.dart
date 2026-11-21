@@ -9,8 +9,6 @@ class ExerciseDto {
   final String target;
   final String technique;
   final String difficulty;
-
-  /// На бэкенде поле необязательное, поэтому и здесь nullable.
   final String? imageUrl;
 
   @JsonKey(name: 'category')

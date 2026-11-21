@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../data/repositories/exercise_repository.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/models/exercise.dart';
 import '../details_page/details_page.dart';
+import '../../components/utils/debounce.dart';
+import 'bloc/bloc.dart';
+import 'bloc/events.dart';
+import 'bloc/state.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,20 +17,28 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final IExerciseRepository _repository = ExerciseRepository();
-  late Future<List<Exercise>> _exercisesFuture;
-  String _search = '';
+  final searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeBloc>().add(const HomeLoadDataEvent());
+    });
   }
 
-  void _load() {
-    setState(() {
-      _exercisesFuture = _repository.getExercises(search: _search);
-    });
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onRefresh() {
+    context.read<HomeBloc>().add(
+      HomeLoadDataEvent(search: searchController.text),
+    );
+
+    return Future.value();
   }
 
   @override
@@ -37,40 +51,43 @@ class _HomePageState extends State<HomePage> {
           preferredSize: const Size.fromHeight(60),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Поиск',
-                fillColor: Colors.white,
-                filled: true,
-                prefixIcon: const Icon(Icons.search),
-                contentPadding: EdgeInsets.zero,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onChanged: (v) {
-                _search = v;
-                _load();
+            child: CupertinoSearchTextField(
+              controller: searchController,
+              placeholder: 'Поиск...',
+              onChanged: (search) {
+                Debounce.run(() {
+                  context.read<HomeBloc>().add(
+                    HomeLoadDataEvent(search: search),
+                  );
+                });
               },
             ),
           ),
         ),
       ),
-      body: FutureBuilder<List<Exercise>>(
-        future: _exercisesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('${snapshot.error}', style: const TextStyle(color: Colors.red)));
-          }
-          final list = snapshot.data ?? [];
-          if (list.isEmpty) return const Center(child: Text('Ничего не найдено'));
 
-          return ListView.builder(
-            itemCount: list.length,
-            itemBuilder: (context, i) {
-              return _Card(exercise: list[i]);
-            },
+      body: BlocBuilder<HomeBloc, HomeState>(
+        builder: (context, state) {
+          if (state.data == null && state.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (state.data == null) {
+            return const SizedBox.shrink();
+          }
+
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              itemCount: state.data!.length,
+              itemBuilder: (context, index) {
+                return _Card(exercise: state.data![index]);
+              },
+            ),
           );
         },
       ),
@@ -107,7 +124,6 @@ class _CardState extends State<_Card> {
         ),
         child: Row(
           children: [
-            // картинка
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
               child: SizedBox(
